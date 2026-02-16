@@ -16,3 +16,10 @@ services:
       MYSQL_DATABASE: orders_db
     ports:
       - "3306:3306"
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs
+      - DEFAULT_REGION=us-east-1
