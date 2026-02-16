@@ -11,6 +11,7 @@ type Configuration struct {
 	Env     string
 	RDS     RDS
 	Redis   Redis
+	SQS     SQS
 }
 
 type RDS struct {
@@ -24,6 +25,11 @@ type Redis struct {
 	Addr     string
 	Password string
 	User     string
+}
+
+type SQS struct {
+	QueueName string
+	Region    string
 }
 
 func Load() (*Configuration, error) {
@@ -78,6 +84,16 @@ func Load() (*Configuration, error) {
 		return nil, err
 	}
 
+	sqsQueueName, err := getEnv("AWS_SQS_QUEUE_NAME")
+	if err != nil {
+		return nil, err
+	}
+
+	awsRegion, err := getEnv("AWS_REGION")
+	if err != nil {
+		return nil, err
+	}
+
 	return &Configuration{
 		AppName: appName,
 		Port:    port,
@@ -92,6 +108,10 @@ func Load() (*Configuration, error) {
 			Password: rdsPassword,
 			Addr:     rdsAddr,
 			DBName:   rdsDbName,
+		},
+		SQS: SQS{
+			QueueName: sqsQueueName,
+			Region:    awsRegion,
 		},
 	}, nil
 }
