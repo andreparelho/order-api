@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	order_repository "github.com/andreparelho/order-api/internal/order/repository"
 	"github.com/andreparelho/order-api/pkg/redis"
 	"github.com/gofiber/fiber/v3"
 )
@@ -13,12 +14,14 @@ type OrderService interface {
 }
 
 type order struct {
-	Redis redis.RedisClient
+	Redis      redis.RedisClient
+	Repository order_repository.OrderRepository
 }
 
-func NewOrderService(redis redis.RedisClient) OrderService {
+func NewOrderService(redis redis.RedisClient, orderRepository order_repository.OrderRepository) OrderService {
 	return &order{
-		Redis: redis,
+		Redis:      redis,
+		Repository: orderRepository,
 	}
 }
 
