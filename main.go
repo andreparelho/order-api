@@ -11,6 +11,7 @@ import (
 	"github.com/andreparelho/order-api/pkg/config"
 	"github.com/andreparelho/order-api/pkg/rds"
 	"github.com/andreparelho/order-api/pkg/redis"
+	"github.com/andreparelho/order-api/pkg/sqs"
 	"github.com/joho/godotenv"
 )
 
@@ -43,10 +44,11 @@ func main() {
 	defer dbConn.Close()
 
 	orderRepository := order_repository.NewOrderRepository(dbConn, redis)
+	sqsClient := sqs.NewSQSClient(ctx, *config)
 
-	orderService := order_service.NewOrderService(orderRepository)
+	orderService := order_service.NewOrderService(orderRepository, sqsClient)
+
 	server, err := server.NewServer(*config, orderService)
-
 	if err := server.Start(ctx, config.Port); err != nil {
 		fmt.Printf("erro ao inicializar a aplicacao. erro: %v", err)
 		log.Fatal(err)
