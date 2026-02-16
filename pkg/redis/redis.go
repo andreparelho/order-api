@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/andreparelho/order-api/pkg/config"
@@ -12,6 +13,7 @@ import (
 type RedisApi interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 	Get(ctx context.Context, key string) *redis.StringCmd
+	Close() error
 }
 
 type redisApi struct {
@@ -21,30 +23,31 @@ type redisApi struct {
 type RedisClient interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 	Get(ctx context.Context, key string) error
+	Close()
 }
 
-type redisAdapter struct {
+type client struct {
 	client *redisApi
 }
 
 func NewRedisClient(cfg config.Configuration, ctx context.Context) (RedisClient, error) {
-	opt, err := redis.ParseURL(fmt.Sprintf("redis://%v:%v@%v/%v", cfg.Redis.User, cfg.Redis.Password, cfg.Redis.Addr, cfg.Redis.DBName))
+	opt, err := redis.ParseURL(fmt.Sprintf("redis://%v:%v@%v/%v", cfg.Redis.User, cfg.Redis.Password, cfg.Redis.Addr, 0))
 	if err != nil {
 		return nil, err
 	}
 
-	client := redis.NewClient(opt)
+	redisClient := redis.NewClient(opt)
 
 	api := &redisApi{
-		api: client,
+		api: redisClient,
 	}
 
-	return &redisAdapter{
+	return &client{
 		client: api,
 	}, nil
 }
 
-func (r *redisAdapter) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+func (r *client) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	err := r.client.api.Set(ctx, key, value, expiration).Err()
 	if err != nil {
 		return err
@@ -53,11 +56,18 @@ func (r *redisAdapter) Set(ctx context.Context, key string, value interface{}, e
 	return nil
 }
 
-func (r *redisAdapter) Get(ctx context.Context, key string) error {
+func (r *client) Get(ctx context.Context, key string) error {
 	_, err := r.client.api.Get(ctx, key).Result()
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (r *client) Close() {
+	err := r.client.api.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
