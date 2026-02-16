@@ -8,6 +8,7 @@ import (
 
 	order_behavior "github.com/andreparelho/order-api/internal/order/behavior"
 	order_repository "github.com/andreparelho/order-api/internal/order/repository"
+	"github.com/andreparelho/order-api/pkg/sqs"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 )
@@ -17,12 +18,14 @@ type OrderService interface {
 }
 
 type order struct {
-	Repository order_repository.OrderRepository
+	repository order_repository.OrderRepository
+	sqs        sqs.SQSClient
 }
 
-func NewOrderService(orderRepository order_repository.OrderRepository) OrderService {
+func NewOrderService(orderRepository order_repository.OrderRepository, sqs sqs.SQSClient) OrderService {
 	return &order{
-		Repository: orderRepository,
+		repository: orderRepository,
+		sqs:        sqs,
 	}
 }
 
@@ -56,9 +59,15 @@ func (o *order) CreateOrder() fiber.Handler {
 			UpdatedAt:   time.Now(),
 		}
 
-		err = o.Repository.InsertOrder(ctx.Context(), order)
+		err = o.repository.InsertOrder(ctx.Context(), order)
 		if err != nil {
 			fmt.Printf("erro ao inserir o dado na base, erro: %v", err)
+			return ctx.SendStatus(http.StatusInternalServerError)
+		}
+
+		err = o.sqs.SendMessage(ctx, "", "")
+		if err != nil {
+			fmt.Printf("erro ao enviar mensagem para fila, erro: %v", err)
 			return ctx.SendStatus(http.StatusInternalServerError)
 		}
 
