@@ -42,9 +42,9 @@ func main() {
 	}
 	defer dbConn.Close()
 
-	orderRepository := order_repository.NewOrderRepository(dbConn)
+	orderRepository := order_repository.NewOrderRepository(dbConn, redis)
 
-	orderService := order_service.NewOrderService(redis, orderRepository)
+	orderService := order_service.NewOrderService(orderRepository)
 	server, err := server.NewServer(*config, orderService)
 
 	if err := server.Start(ctx, config.Port); err != nil {
