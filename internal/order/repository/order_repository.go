@@ -14,6 +14,7 @@ import (
 
 type OrderRepository interface {
 	InsertOrder(ctx context.Context, order Order, xRequestId string) (bool, error)
+	UpdateOrder(ctx context.Context, order Order) error
 }
 
 type order struct {
@@ -56,7 +57,7 @@ func (o *order) InsertOrder(ctx context.Context, order Order, xRequestId string)
 	_, err = o.database.ExecContext(ctx, "INSERT INTO orders (id, customer_id, status, total_amount, currency, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?)",
 		order.OrderID, order.CustomerID, order.Status, order.TotalAmount, order.Currency, order.CreatedAt, order.UpdatedAt)
 	if err != nil {
-		fmt.Printf("erro ao inserir os dados no banco, erro: %v", err)
+		fmt.Printf("ERROR: erro ao inserir os dados no banco, erro: %v", err)
 		return false, err
 	}
 
@@ -66,15 +67,19 @@ func (o *order) InsertOrder(ctx context.Context, order Order, xRequestId string)
 
 	orderInfoMarsh, err := json.Marshal(&orderInfo)
 	if err != nil {
-		fmt.Printf("erro ao realizar marshal, erro: %v", err)
+		fmt.Printf("ERROR: erro ao realizar marshal, erro: %v", err)
 		return false, err
 	}
 
 	err = o.redis.Set(ctx, redisKey, orderInfoMarsh, 10*time.Minute)
 	if err != nil {
-		fmt.Printf("erro ao inserir no cache, erro: %v", err)
+		fmt.Printf("ERROR: erro ao inserir no cache, erro: %v", err)
 		return false, err
 	}
 
 	return false, nil
+}
+
+func (o *order) UpdateOrder(ctx context.Context, event Order) error {
+	return nil
 }

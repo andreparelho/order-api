@@ -3,14 +3,15 @@ package order_service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	order_behavior "github.com/andreparelho/order-api/internal/order/behavior"
 	order_repository "github.com/andreparelho/order-api/internal/order/repository"
 	"github.com/andreparelho/order-api/pkg/config"
+	errors_utils "github.com/andreparelho/order-api/pkg/errors"
 	"github.com/andreparelho/order-api/pkg/sqs"
+	sqs_types "github.com/andreparelho/order-api/pkg/sqs/types"
 	"github.com/google/uuid"
 )
 
@@ -19,41 +20,21 @@ type OrderService interface {
 }
 
 type order struct {
-	repository order_repository.OrderRepository
-	sqs        sqs.SQSClient
-	cfg        config.Configuration
+	repository      order_repository.OrderRepository
+	eventRepository order_repository.OrderEventRepository
+	sqs             sqs.SQSClient
+	cfg             config.Configuration
 }
 
-func NewOrderService(orderRepository order_repository.OrderRepository, sqs sqs.SQSClient, cfg config.Configuration) OrderService {
+func NewOrderService(orderRepository order_repository.OrderRepository, eventRepository order_repository.OrderEventRepository, cfg config.Configuration) OrderService {
 	return &order{
-		repository: orderRepository,
-		sqs:        sqs,
-		cfg:        cfg,
+		repository:      orderRepository,
+		eventRepository: eventRepository,
+		cfg:             cfg,
 	}
 }
 
-var (
-	ErrGenerateUUID     = fmt.Errorf("erro criar um uuid")
-	ErrDatabaseInsert   = fmt.Errorf("erro ao inserir o dado na base")
-	ErrSendMessageQueue = fmt.Errorf("erro ao enviar mensagem para fila")
-	ErrMarshalEvent     = fmt.Errorf("erro ao realizar o marshal do evento sqs")
-)
-
 type CreateOrderRequest struct {
-	CustomerID  uuid.UUID `json:"customerID"`
-	TotalAmount float64   `json:"totalAmount"`
-	Currency    string    `json:"currency"`
-}
-
-type EventOrderCreatedMessage struct {
-	EventId     string         `json:"eventID"`
-	EventType   string         `json:"eventType"`
-	OccuredTime time.Time      `json:"occuredTime"`
-	Data        OrderEventData `json:"data"`
-}
-
-type OrderEventData struct {
-	OrderID     uuid.UUID `json:"orderID"`
 	CustomerID  uuid.UUID `json:"customerID"`
 	TotalAmount float64   `json:"totalAmount"`
 	Currency    string    `json:"currency"`
@@ -63,7 +44,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 	orderID, err := uuid.NewRandom()
 	if err != nil {
 		fmt.Printf("ERROR: erro criar um uuid, erro: %v", err)
-		return ErrGenerateUUID
+		return errors_utils.ErrGenerateUUID
 	}
 
 	order := order_repository.Order{
@@ -85,7 +66,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 	isRedisOk, err := o.repository.InsertOrder(ctx, order, xRequestId)
 	if err != nil {
 		fmt.Printf("ERROR: erro ao inserir o dado na base, erro: %v", err)
-		return ErrDatabaseInsert
+		return errors_utils.ErrDatabaseInsert
 	} else if isRedisOk {
 		fmt.Printf("INFO: ordem encontrada no redis. Encerrando fluxo %v", order)
 		return nil
@@ -94,14 +75,14 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 	eventID, err := uuid.NewRandom()
 	if err != nil {
 		fmt.Printf("ERROR: erro criar um uuid, erro: %v", err)
-		return ErrGenerateUUID
+		return errors_utils.ErrGenerateUUID
 	}
 
-	orderEvent := EventOrderCreatedMessage{
-		EventId:     fmt.Sprintf("event:created:{%s}", eventID.String()),
-		EventType:   "orderCreated",
+	orderEvent := sqs_types.EventOrderCreatedMessage{
+		EventId:     fmt.Sprintf("event:order_created:{%s}", eventID.String()),
+		EventType:   "order_created",
 		OccuredTime: time.Now(),
-		Data: OrderEventData{
+		Data: sqs_types.OrderEventData{
 			OrderID:     orderID,
 			CustomerID:  order.CustomerID,
 			TotalAmount: order.TotalAmount,
@@ -109,16 +90,10 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		},
 	}
 
-	orderEventMarsh, err := json.Marshal(&orderEvent)
-	if err != nil {
-		fmt.Printf("ERROR: erro ao realizar o marshal do event, erro: %v", err)
-		return ErrMarshalEvent
-	}
-
-	err = o.sqs.SendMessage(ctx, o.cfg.SQS.QueueName, string(orderEventMarsh))
+	err = o.eventRepository.SendOrderEventMessage(ctx, o.cfg.SQS.OrdersQueue, orderEvent)
 	if err != nil {
 		fmt.Printf("ERROR: erro ao enviar mensagem para fila, erro: %v", err)
-		return ErrSendMessageQueue
+		return errors_utils.ErrSendMessageQueue
 	}
 
 	return nil
