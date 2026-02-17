@@ -14,5 +14,8 @@ aws configure set aws_secret_access_key test --profile localstack
 aws configure set region us-east-1 --profile localstack
 aws configure set output json --profile localstack
 
-echo "Criando Fila SQS"
+echo "Criando Fila Orders SQS"
 aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name orders-queue
+
+echo "Criando Fila Payments SQS"
+aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name payments-queue
