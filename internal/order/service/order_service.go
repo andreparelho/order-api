@@ -62,7 +62,7 @@ type OrderEventData struct {
 func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrderRequest, xRequestId string) error {
 	orderID, err := uuid.NewRandom()
 	if err != nil {
-		fmt.Printf("erro criar um uuid, erro: %v", err)
+		fmt.Printf("ERROR: erro criar um uuid, erro: %v", err)
 		return ErrGenerateUUID
 	}
 
@@ -82,15 +82,18 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		},
 	}
 
-	err = o.repository.InsertOrder(ctx, order, xRequestId)
+	isRedisOk, err := o.repository.InsertOrder(ctx, order, xRequestId)
 	if err != nil {
-		fmt.Printf("erro ao inserir o dado na base, erro: %v", err)
+		fmt.Printf("ERROR: erro ao inserir o dado na base, erro: %v", err)
 		return ErrDatabaseInsert
+	} else if isRedisOk {
+		fmt.Printf("INFO: ordem encontrada no redis. Encerrando fluxo %v", order)
+		return nil
 	}
 
 	eventID, err := uuid.NewRandom()
 	if err != nil {
-		fmt.Printf("erro criar um uuid, erro: %v", err)
+		fmt.Printf("ERROR: erro criar um uuid, erro: %v", err)
 		return ErrGenerateUUID
 	}
 
@@ -108,13 +111,13 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 
 	orderEventMarsh, err := json.Marshal(&orderEvent)
 	if err != nil {
-		fmt.Printf("erro ao realizar o marshal do event, erro: %v", err)
+		fmt.Printf("ERROR: erro ao realizar o marshal do event, erro: %v", err)
 		return ErrMarshalEvent
 	}
 
 	err = o.sqs.SendMessage(ctx, o.cfg.SQS.QueueName, string(orderEventMarsh))
 	if err != nil {
-		fmt.Printf("erro ao enviar mensagem para fila, erro: %v", err)
+		fmt.Printf("ERROR: erro ao enviar mensagem para fila, erro: %v", err)
 		return ErrSendMessageQueue
 	}
 
