@@ -46,7 +46,7 @@ func main() {
 	orderRepository := order_repository.NewOrderRepository(dbConn, redis)
 	sqsClient := sqs.NewSQSClient(ctx, *config)
 
-	orderService := order_service.NewOrderService(orderRepository, sqsClient)
+	orderService := order_service.NewOrderService(orderRepository, sqsClient, *config)
 
 	server, err := server.NewServer(*config, orderService)
 	if err := server.Start(ctx, config.Port); err != nil {
