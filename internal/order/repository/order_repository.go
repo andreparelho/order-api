@@ -3,6 +3,7 @@ package order_repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 type OrderRepository interface {
-	InsertOrder(ctx context.Context, order Order) error
+	InsertOrder(ctx context.Context, order Order, xRequestId string) error
 }
 
 type order struct {
@@ -37,15 +38,39 @@ type Order struct {
 	UpdatedAt   sql.NullTime               `db:"updated_at" json:"UpdatedAt"`
 }
 
-func (o *order) InsertOrder(ctx context.Context, order Order) error {
-	_, err := o.database.ExecContext(ctx, "INSERT INTO orders (id, customer_id, status, total_amount, currency, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?)",
+type OrderRedisInfo struct {
+	Status order_behavior.OrderStatus `json:"status"`
+}
+
+func (o *order) InsertOrder(ctx context.Context, order Order, xRequestId string) error {
+	redisKey := fmt.Sprintf("order:req:id_%s", xRequestId)
+
+	err := o.redis.Get(ctx, redisKey)
+	if err != nil {
+		fmt.Printf("WARN: nao foi possivel buscar o dado %s do cache. Criando dado na base de dados.", redisKey)
+	} else {
+		fmt.Printf("INFO: dado encotrado no cache.")
+		return nil
+	}
+
+	_, err = o.database.ExecContext(ctx, "INSERT INTO orders (id, customer_id, status, total_amount, currency, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?)",
 		order.OrderID, order.CustomerID, order.Status, order.TotalAmount, order.Currency, order.CreatedAt, order.UpdatedAt)
 	if err != nil {
 		fmt.Printf("erro ao inserir os dados no banco, erro: %v", err)
 		return err
 	}
 
-	err = o.redis.Set(ctx, "order_"+order.OrderID.String(), nil, 10*time.Minute)
+	orderInfo := OrderRedisInfo{
+		Status: order_behavior.OrderStatusCreated,
+	}
+
+	orderInfoMarsh, err := json.Marshal(&orderInfo)
+	if err != nil {
+		fmt.Printf("erro ao realizar marshal, erro: %v", err)
+		return err
+	}
+
+	err = o.redis.Set(ctx, redisKey, orderInfoMarsh, 10*time.Minute)
 	if err != nil {
 		fmt.Printf("erro ao inserir no cache, erro: %v", err)
 		return err
