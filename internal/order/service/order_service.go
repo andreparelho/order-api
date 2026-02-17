@@ -1,6 +1,7 @@
 package order_service
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -33,7 +34,7 @@ func NewOrderService(orderRepository order_repository.OrderRepository, sqs sqs.S
 }
 
 type CreateOrderRequest struct {
-	CustomerId  uuid.UUID `json:"customerID"`
+	CustomerID  uuid.UUID `json:"customerID"`
 	TotalAmount float64   `json:"totalAmount"`
 	Currency    string    `json:"currency"`
 }
@@ -46,20 +47,26 @@ func (o *order) CreateOrder() fiber.Handler {
 			return ctx.SendStatus(http.StatusBadRequest)
 		}
 
-		orderId, err := uuid.NewRandom()
+		orderID, err := uuid.NewRandom()
 		if err != nil {
 			fmt.Printf("erro criar um uuid, erro: %v", err)
 			return ctx.SendStatus(http.StatusInternalServerError)
 		}
 
 		order := order_repository.Order{
-			OrderID:     orderId,
-			CustomerID:  orderRequest.CustomerId,
+			OrderID:     orderID,
+			CustomerID:  orderRequest.CustomerID,
 			Status:      order_behavior.OrderStatusCreated,
 			TotalAmount: orderRequest.TotalAmount,
 			Currency:    orderRequest.Currency,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+			CreatedAt: sql.NullTime{
+				Time:  time.Now(),
+				Valid: true,
+			},
+			UpdatedAt: sql.NullTime{
+				Time:  time.Time{},
+				Valid: false,
+			},
 		}
 
 		err = o.repository.InsertOrder(ctx.Context(), order)
@@ -68,7 +75,7 @@ func (o *order) CreateOrder() fiber.Handler {
 			return ctx.SendStatus(http.StatusInternalServerError)
 		}
 
-		err = o.sqs.SendMessage(ctx, o.cfg.SQS.QueueName, "teste")
+		err = o.sqs.SendMessage(ctx.Context(), o.cfg.SQS.QueueName, "teste")
 		if err != nil {
 			fmt.Printf("erro ao enviar mensagem para fila, erro: %v", err)
 			return ctx.SendStatus(http.StatusInternalServerError)

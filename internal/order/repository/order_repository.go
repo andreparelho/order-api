@@ -33,8 +33,8 @@ type Order struct {
 	Status      order_behavior.OrderStatus `db:"status" json:"status"`
 	TotalAmount float64                    `db:"total_amount" json:"totalAmount"`
 	Currency    string                     `db:"currency" json:"currency"`
-	CreatedAt   time.Time                  `db:"created_at" json:"createdAt"`
-	UpdatedAt   time.Time                  `db:"updated_at" json:"UpdatedAt"`
+	CreatedAt   sql.NullTime               `db:"created_at" json:"createdAt"`
+	UpdatedAt   sql.NullTime               `db:"updated_at" json:"UpdatedAt"`
 }
 
 func (o *order) InsertOrder(ctx context.Context, order Order) error {
