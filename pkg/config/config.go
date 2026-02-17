@@ -28,8 +28,9 @@ type Redis struct {
 }
 
 type SQS struct {
-	QueueName string
-	Region    string
+	OrdersQueue   string
+	PaymentsQueue string
+	Region        string
 }
 
 func Load() (*Configuration, error) {
@@ -84,7 +85,12 @@ func Load() (*Configuration, error) {
 		return nil, err
 	}
 
-	sqsQueueName, err := getEnv("AWS_SQS_QUEUE_NAME")
+	sqsOrdersQueue, err := getEnv("AWS_SQS_ORDERS_QUEUE_NAME")
+	if err != nil {
+		return nil, err
+	}
+
+	sqsPaymentsQueue, err := getEnv("AWS_SQS_PAYMENTS_QUEUE_NAME")
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +116,9 @@ func Load() (*Configuration, error) {
 			DBName:   rdsDbName,
 		},
 		SQS: SQS{
-			QueueName: sqsQueueName,
-			Region:    awsRegion,
+			OrdersQueue:   sqsOrdersQueue,
+			PaymentsQueue: sqsPaymentsQueue,
+			Region:        awsRegion,
 		},
 	}, nil
 }
