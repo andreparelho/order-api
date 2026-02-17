@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "⏳ Aguardando MySQL subir..."
-sleep 5
+sleep 30
 
 echo "🚀 Criando banco e tabelas..."
 
