@@ -13,6 +13,7 @@ import (
 type RedisApi interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 	Get(ctx context.Context, key string) *redis.StringCmd
+	Del(ctx context.Context, keys ...string) *redis.IntCmd
 	Close() error
 }
 
@@ -23,6 +24,7 @@ type redisApi struct {
 type RedisClient interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 	Get(ctx context.Context, key string) error
+	Del(ctx context.Context, key string) error
 	Close()
 }
 
@@ -58,6 +60,15 @@ func (r *client) Set(ctx context.Context, key string, value interface{}, expirat
 
 func (r *client) Get(ctx context.Context, key string) error {
 	_, err := r.client.api.Get(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *client) Del(ctx context.Context, key string) error {
+	_, err := r.client.api.Del(ctx, key).Result()
 	if err != nil {
 		return err
 	}
