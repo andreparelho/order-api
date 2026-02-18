@@ -8,11 +8,12 @@ import (
 	errors_utils "github.com/andreparelho/order-api/pkg/errors"
 	"github.com/andreparelho/order-api/pkg/sqs"
 	sqs_types "github.com/andreparelho/order-api/pkg/sqs/types"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 type PaymentEventRepostory interface {
-	GetOrdersPayments(ctx context.Context, queueURL string) (sqs_types.EventOrderCreatedMessage, error)
-	FinishPaymentProccess(ctx context.Context, queueURL string, message sqs_types.EventOrderCreatedMessage) error
+	GetOrdersPayments(ctx context.Context, queueURL string) (sqs_types.EventOrderCreatedMessage, types.Message, error)
+	FinishPaymentProccess(ctx context.Context, queueURL string, message *string) error
 	SendPaymentEvent(ctx context.Context, queueURL string, event sqs_types.EventPaymentMessage) error
 }
 
@@ -26,31 +27,30 @@ func NewPaymentEventRepository(sqs sqs.SQSClient) PaymentEventRepostory {
 	}
 }
 
-func (p *payment) GetOrdersPayments(ctx context.Context, queueURL string) (sqs_types.EventOrderCreatedMessage, error) {
+func (p *payment) GetOrdersPayments(ctx context.Context, queueURL string) (sqs_types.EventOrderCreatedMessage, types.Message, error) {
 	messages, err := p.sqs.ReceiveMessage(ctx, queueURL)
 	if err != nil {
-		return sqs_types.EventOrderCreatedMessage{}, err
+		fmt.Printf("\nERROR: erro ao buscar mensagens da fila. Erro: %v", err)
+		return sqs_types.EventOrderCreatedMessage{}, types.Message{}, err
 	}
 
 	var orderMessages sqs_types.EventOrderCreatedMessage
-	for _, message := range messages.Messages {
-		if err := json.Unmarshal([]byte(*message.Body), &orderMessages); err != nil {
-			return sqs_types.EventOrderCreatedMessage{}, err
+	var message types.Message
+	for _, m := range messages.Messages {
+		if err := json.Unmarshal([]byte(*m.Body), &orderMessages); err != nil {
+			fmt.Printf("\nERROR: erro ao realizar o unmarshal do event. Erro: %v", err)
+			return sqs_types.EventOrderCreatedMessage{}, types.Message{}, err
 		}
+		message = m
 	}
 
-	return orderMessages, nil
+	return orderMessages, message, nil
 }
 
-func (p *payment) FinishPaymentProccess(ctx context.Context, queueURL string, event sqs_types.EventOrderCreatedMessage) error {
-	messageMarsh, err := json.Marshal(event)
+func (p *payment) FinishPaymentProccess(ctx context.Context, queueURL string, message *string) error {
+	err := p.sqs.DeleteMessage(ctx, queueURL, message)
 	if err != nil {
-		return err
-	}
-	message := string(messageMarsh)
-
-	err = p.sqs.DeleteMessage(ctx, queueURL, &message)
-	if err != nil {
+		fmt.Printf("\nERROR: erro eo remover mensagem da fila. Erro: %v", err)
 		return err
 	}
 
@@ -60,13 +60,13 @@ func (p *payment) FinishPaymentProccess(ctx context.Context, queueURL string, ev
 func (p *payment) SendPaymentEvent(ctx context.Context, queueURL string, event sqs_types.EventPaymentMessage) error {
 	paymentEventMarsh, err := json.Marshal(&event)
 	if err != nil {
-		fmt.Printf("ERROR: erro ao realizar o marshal do event, erro: %v", err)
+		fmt.Printf("\nERROR: erro ao realizar o marshal do event. Erro: %v", err)
 		return errors_utils.ErrMarshalEvent
 	}
 
 	err = p.sqs.SendMessage(ctx, queueURL, string(paymentEventMarsh))
 	if err != nil {
-		fmt.Printf("ERROR: erro ao enviar mensagem para fila, erro: %v", err)
+		fmt.Printf("\nERROR: erro ao enviar mensagem para fila. Erro: %v", err)
 		return errors_utils.ErrSendMessageQueue
 	}
 
