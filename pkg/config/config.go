@@ -12,6 +12,7 @@ type Configuration struct {
 	RDS     RDS
 	Redis   Redis
 	SQS     SQS
+	AWS     AWS
 }
 
 type RDS struct {
@@ -31,6 +32,13 @@ type SQS struct {
 	OrdersQueue   string
 	PaymentsQueue string
 	Region        string
+}
+
+type AWS struct {
+	Key      string
+	Secret   string
+	Session  string
+	Endpoint string
 }
 
 func Load() (*Configuration, error) {
@@ -100,6 +108,25 @@ func Load() (*Configuration, error) {
 		return nil, err
 	}
 
+	awsEndpoint, err := getEnv("AWS_ENDPOINT")
+	if err != nil {
+		return nil, err
+	}
+
+	awsAccessKey, err := getEnv("AWS_ACCESS_KEY_ID")
+	if err != nil {
+		return nil, err
+	}
+
+	awsSecretKey, err := getEnv("AWS_SECRET_ACCESS_KEY")
+	if err != nil {
+		return nil, err
+	}
+
+	awsSession, err := getEnv("AWS_SESSSION")
+	if err != nil {
+		return nil, err
+	}
 	return &Configuration{
 		AppName: appName,
 		Port:    port,
@@ -119,6 +146,12 @@ func Load() (*Configuration, error) {
 			OrdersQueue:   sqsOrdersQueue,
 			PaymentsQueue: sqsPaymentsQueue,
 			Region:        awsRegion,
+		},
+		AWS: AWS{
+			Key:      awsAccessKey,
+			Secret:   awsSecretKey,
+			Session:  awsSession,
+			Endpoint: awsEndpoint,
 		},
 	}, nil
 }
