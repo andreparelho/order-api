@@ -2,9 +2,12 @@ package sqs
 
 import (
 	"context"
+	"log"
 
 	"github.com/andreparelho/order-api/pkg/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	aws_config "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	aws_sqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 )
@@ -30,9 +33,28 @@ type client struct {
 }
 
 func NewSQSClient(ctx context.Context, config config.Configuration) SQSClient {
-	cfg, _ := aws_config.LoadDefaultConfig(ctx,
+
+	cfg, err := aws_config.LoadDefaultConfig(context.TODO(),
 		aws_config.WithRegion(config.SQS.Region),
-	)
+		aws_config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				config.AWS.Key, config.AWS.Secret, config.AWS.Session,
+			),
+		),
+		aws_config.WithEndpointResolverWithOptions(
+			aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+				if service == sqs.ServiceID {
+					return aws.Endpoint{
+						URL:           config.AWS.Endpoint,
+						SigningRegion: config.SQS.Region,
+					}, nil
+				}
+				return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+			}),
+		))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	awsClient := aws_sqs.NewFromConfig(cfg)
 
