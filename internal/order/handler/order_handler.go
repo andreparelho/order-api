@@ -17,7 +17,7 @@ func OrderHandler(orderService order_service.OrderService) fiber.Handler {
 		if xRequestId == "" {
 			id, err := uuid.NewRandom()
 			if err != nil {
-				fmt.Printf("ERROR: erro ao criar um novo x-request-id. Erro: %v", err)
+				fmt.Printf("\n[ERROR]: erro ao criar um novo x-request-id. Erro: %v", err)
 				return ctx.SendStatus(http.StatusInternalServerError)
 			}
 			xRequestId = id.String()
@@ -25,13 +25,13 @@ func OrderHandler(orderService order_service.OrderService) fiber.Handler {
 
 		var orderRequest order_service.CreateOrderRequest
 		if err := json.Unmarshal(ctx.Body(), &orderRequest); err != nil {
-			fmt.Printf("ERROR: erro ao realizar o unmarshal do request, erro: %v", err)
+			fmt.Printf("\n[ERROR]: erro ao realizar o unmarshal do request, erro: %v", err)
 			return ctx.SendStatus(http.StatusBadRequest)
 		}
 
 		err := orderService.CreateOrderService(ctx.Context(), orderRequest, xRequestId)
 		if err != nil {
-			fmt.Printf("ERROR: erro interno, erro: %v", err)
+			fmt.Printf("\n[ERROR]: erro interno, erro: %v", err)
 			return ctx.SendStatus(http.StatusInternalServerError)
 		}
 
