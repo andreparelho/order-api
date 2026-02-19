@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -59,11 +60,11 @@ func main() {
 	go orderConsumer.StartConsumer(ctx)
 	go paymentConsumer.StartConsumer(ctx)
 
-	log.Println("workers iniciados")
+	fmt.Println("[INFO]: workers iniciados com sucesso")
 
 	<-sig
-	log.Println("shutdown signal recebido")
+	fmt.Println("[INFO]: shutdown signal recebido")
 
 	cancel()
-	log.Println("worker encerrado com sucesso")
+	fmt.Println("[INFO]: worker encerrado com sucesso")
 }
