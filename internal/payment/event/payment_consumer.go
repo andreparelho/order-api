@@ -49,17 +49,24 @@ func (p *payment) StartWorker(ctx context.Context) {
 }
 
 func (p *payment) GetOrdersMessages(ctx context.Context) error {
-	orderEventMessage, message, err := p.eventRepository.GetOrdersPayments(ctx, p.cfg.SQS.OrdersQueue)
+	orderEventMessage, haveMessage, err := p.eventRepository.GetOrderPayment(ctx, p.cfg.SQS.OrdersQueue)
 	if err != nil {
 		fmt.Printf("\n[ERROR]: erro ao buscar as mensagens da fila. Erro: %v", err)
 		return err
 	}
 
-	return orderPaymentProccess(ctx, orderEventMessage, message.ReceiptHandle, p.cfg.SQS.OrdersQueue, p.cfg.SQS.PaymentsQueue, p.eventRepository)
+	if !haveMessage {
+		fmt.Printf("\n[INFO]: nenhuma mensagem na fila. Mensagem: %v", err)
+		return nil
+	}
+
+	return orderPaymentProccess(ctx, orderEventMessage, p.cfg.SQS.OrdersQueue, p.cfg.SQS.PaymentsQueue, p.eventRepository)
 }
 
-func orderPaymentProccess(ctx context.Context, orderMessage sqs_types.EventOrderCreatedMessage, message *string, orderQueue, paymentQueue string, eventRepository payment_event_repository.PaymentEventRepostory) error {
-	err := eventRepository.FinishPaymentProccess(ctx, orderQueue, message)
+func orderPaymentProccess(ctx context.Context, orderMessage payment_event_repository.EventOrder, orderQueue, paymentQueue string, eventRepository payment_event_repository.PaymentEventRepostory) error {
+	receiptHandle := orderMessage.ReceiptHandle
+
+	err := eventRepository.FinishPaymentProccess(ctx, orderQueue, receiptHandle)
 	if err != nil {
 		return err
 	}
@@ -71,11 +78,11 @@ func orderPaymentProccess(ctx context.Context, orderMessage sqs_types.EventOrder
 
 	paymentEvent := sqs_types.EventPaymentMessage{
 		EventId:     fmt.Sprintf("event:payment:{%v}", eventID.String()),
-		OrderID:     orderMessage.Data.OrderID,
+		OrderID:     orderMessage.EventOrderCreatedMessage.Data.OrderID,
 		EventType:   "payment_completed",
 		OccuredTime: time.Now(),
 		OrderStatus: string(getPaymentStatus()),
-		RedisKey:    orderMessage.Data.RedisKey,
+		CacheKey:    orderMessage.EventOrderCreatedMessage.Data.CacheKey,
 	}
 
 	err = eventRepository.SendPaymentEvent(ctx, paymentQueue, paymentEvent)
@@ -88,7 +95,7 @@ func orderPaymentProccess(ctx context.Context, orderMessage sqs_types.EventOrder
 }
 
 func getPaymentStatus() payment_behavior.PaymentStatus {
-	if rand.IntN(100) == 0 {
+	if rand.IntN(10)%2 == 0 {
 		return payment_behavior.PaymentStatusCompleted
 	}
 
