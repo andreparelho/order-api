@@ -87,7 +87,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		Data: sqs_types.OrderEventData{
 			OrderID:     orderID,
 			CustomerID:  order.CustomerID,
-			RedisKey:    redisKey,
+			CacheKey:    redisKey,
 			TotalAmount: order.TotalAmount,
 			Currency:    order.Currency,
 		},
