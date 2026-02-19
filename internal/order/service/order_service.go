@@ -63,13 +63,13 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		},
 	}
 
-	redisKey := fmt.Sprintf("order:req:id_%s", xRequestId)
+	cacheKey := fmt.Sprintf("order:req:id_%s", xRequestId)
 
-	isRedisOk, err := o.repository.InsertOrder(ctx, order, redisKey)
+	isCached, err := o.repository.InsertOrder(ctx, order, cacheKey)
 	if err != nil {
 		fmt.Printf("\n[ERROR]: erro ao inserir o dado na base, erro: %v", err)
 		return errors_utils.ErrDatabaseInsert
-	} else if isRedisOk {
+	} else if isCached {
 		fmt.Printf("\n[INFO]: ordem encontrada no redis. Encerrando fluxo %v", order)
 		return nil
 	}
@@ -87,7 +87,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		Data: sqs_types.OrderEventData{
 			OrderID:     orderID,
 			CustomerID:  order.CustomerID,
-			CacheKey:    redisKey,
+			CacheKey:    cacheKey,
 			TotalAmount: order.TotalAmount,
 			Currency:    order.Currency,
 		},
