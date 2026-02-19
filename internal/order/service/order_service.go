@@ -83,6 +83,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 	orderEvent := sqs_types.EventOrderCreatedMessage{
 		EventId:     fmt.Sprintf("event:order_created:{%s}", eventID.String()),
 		EventType:   "order_created",
+		Source:      "order_service",
 		OccuredTime: time.Now(),
 		Data: sqs_types.OrderEventData{
 			OrderID:     orderID,
@@ -98,7 +99,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		fmt.Printf("\n[ERROR]: erro ao enviar mensagem para fila, erro: %v", err)
 		return errors_utils.ErrSendMessageQueue
 	}
-	fmt.Printf("\n[INFO]: enviando mensagem para a fila (%s). Evento: order_created. Mensagem: %v", o.cfg.SQS.OrdersQueue, orderEvent)
+	fmt.Printf("\n[INFO]: enviando mensagem para a fila (%s). Evento: order_created. Mensagem: %v. Source: order_service", o.cfg.SQS.OrdersQueue, orderEvent)
 
 	return nil
 }

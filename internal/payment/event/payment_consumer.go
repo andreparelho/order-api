@@ -56,7 +56,7 @@ func (p *payment) GetOrdersMessages(ctx context.Context) error {
 	}
 
 	if !haveMessage {
-		fmt.Printf("\n[INFO]: nenhuma mensagem na fila. Mensagem: %v", err)
+		fmt.Print("\n[INFO]: nenhuma mensagem na fila")
 		return nil
 	}
 
@@ -70,6 +70,7 @@ func orderPaymentProccess(ctx context.Context, orderMessage payment_event_reposi
 	if err != nil {
 		return err
 	}
+	fmt.Printf("\n[INFO]: deletando mensagem da fila (%s). Mensagem: %v. Source: payment_service", orderQueue, orderMessage)
 
 	eventID, err := uuid.NewRandom()
 	if err != nil {
@@ -80,6 +81,7 @@ func orderPaymentProccess(ctx context.Context, orderMessage payment_event_reposi
 		EventId:     fmt.Sprintf("event:payment:{%s}", eventID.String()),
 		OrderID:     orderMessage.EventOrderCreatedMessage.Data.OrderID,
 		EventType:   "payment_completed",
+		Source:      "payment_service",
 		OccuredTime: time.Now(),
 		OrderStatus: string(getPaymentStatus()),
 		CacheKey:    orderMessage.EventOrderCreatedMessage.Data.CacheKey,
@@ -90,7 +92,7 @@ func orderPaymentProccess(ctx context.Context, orderMessage payment_event_reposi
 		return err
 	}
 
-	fmt.Printf("\n[INFO]: enviando mensagem para a fila (%s). Evento: payment_completed. Mensagem: %v", paymentQueue, paymentEvent)
+	fmt.Printf("\n[INFO]: enviando mensagem para a fila (%s). Evento: payment_completed. Mensagem: %v. Source: payment_service", paymentQueue, paymentEvent)
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 type EventOrderCreatedMessage struct {
 	EventId     string         `json:"eventID"`
 	EventType   string         `json:"eventType"`
+	Source      string         `json:"source"`
 	OccuredTime time.Time      `json:"occuredTime"`
 	Data        OrderEventData `json:"data"`
 }
@@ -25,6 +26,7 @@ type EventPaymentMessage struct {
 	EventId     string    `json:"eventID"`
 	OrderID     uuid.UUID `json:"orderID"`
 	EventType   string    `json:"eventType"`
+	Source      string    `json:"source"`
 	OccuredTime time.Time `json:"occuredTime"`
 	OrderStatus string    `json:"status"`
 	CacheKey    string    `json:"cacheKey"`
