@@ -16,7 +16,7 @@ type EventOrderCreatedMessage struct {
 type OrderEventData struct {
 	OrderID     uuid.UUID `json:"orderID"`
 	CustomerID  uuid.UUID `json:"customerID"`
-	RedisKey    string    `json:"redisKey"`
+	CacheKey    string    `json:"cacheKey"`
 	TotalAmount float64   `json:"totalAmount"`
 	Currency    string    `json:"currency"`
 }
@@ -27,5 +27,5 @@ type EventPaymentMessage struct {
 	EventType   string    `json:"eventType"`
 	OccuredTime time.Time `json:"occuredTime"`
 	OrderStatus string    `json:"status"`
-	RedisKey    string    `json:"redisKey"`
+	CacheKey    string    `json:"cacheKey"`
 }
