@@ -12,7 +12,7 @@ import (
 
 type PaymentEventRepostory interface {
 	GetOrderPayment(ctx context.Context, queueURL string) (EventOrder, bool, error)
-	FinishPaymentProccess(ctx context.Context, queueURL string, message *string) error
+	FinishPaymentProccess(ctx context.Context, queueURL string, receiptHandle *string) error
 	SendPaymentEvent(ctx context.Context, queueURL string, event sqs_types.EventPaymentMessage) error
 }
 
@@ -57,8 +57,8 @@ func (p *payment) GetOrderPayment(ctx context.Context, queueURL string) (EventOr
 	return EventOrder{}, false, nil
 }
 
-func (p *payment) FinishPaymentProccess(ctx context.Context, queueURL string, message *string) error {
-	err := p.sqs.DeleteMessage(ctx, queueURL, message)
+func (p *payment) FinishPaymentProccess(ctx context.Context, queueURL string, receiptHandle *string) error {
+	err := p.sqs.DeleteMessage(ctx, queueURL, receiptHandle)
 	if err != nil {
 		fmt.Printf("\n[ERROR]: erro eo remover mensagem da fila. Erro: %v", err)
 		return err

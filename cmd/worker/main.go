@@ -56,8 +56,8 @@ func main() {
 	orderConsumer := order_consumer.NewOrderConsumer(*cfg, orderEventRepository, orderRepository)
 	paymentConsumer := payment_consumer.NewPaymentConsumer(*cfg, paymentEventRepository)
 
-	go orderConsumer.StartWorker(ctx)
-	go paymentConsumer.StartWorker(ctx)
+	go orderConsumer.StartConsumer(ctx)
+	go paymentConsumer.StartConsumer(ctx)
 
 	log.Println("workers iniciados")
 
