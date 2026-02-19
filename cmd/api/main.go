@@ -43,8 +43,12 @@ func main() {
 	}
 	defer dbConn.Close()
 
+	sqsClient, err := sqs.NewSQSClient(ctx, *config)
+	if err != nil {
+		log.Fatalf("erro sqs: %v", err)
+	}
+
 	orderRepository := order_repository.NewOrderRepository(dbConn, redis)
-	sqsClient := sqs.NewSQSClient(ctx, *config)
 	orderEventRepository := order_repository.NewOrderEventRepository(sqsClient)
 	orderService := order_service.NewOrderService(orderRepository, orderEventRepository, *config)
 

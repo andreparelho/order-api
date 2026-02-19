@@ -2,7 +2,6 @@ package sqs
 
 import (
 	"context"
-	"log"
 
 	"github.com/andreparelho/order-api/pkg/config"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -32,10 +31,10 @@ type client struct {
 	client *sqsApi
 }
 
-func NewSQSClient(ctx context.Context, config config.Configuration) SQSClient {
+func NewSQSClient(ctx context.Context, config config.Configuration) (SQSClient, error) {
 
 	cfg, err := aws_config.LoadDefaultConfig(context.TODO(),
-		aws_config.WithRegion(config.SQS.Region),
+		aws_config.WithRegion(config.AWS.Region),
 		aws_config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(
 				config.AWS.Key, config.AWS.Secret, config.AWS.Session,
@@ -46,14 +45,14 @@ func NewSQSClient(ctx context.Context, config config.Configuration) SQSClient {
 				if service == sqs.ServiceID {
 					return aws.Endpoint{
 						URL:           config.AWS.Endpoint,
-						SigningRegion: config.SQS.Region,
+						SigningRegion: config.AWS.Region,
 					}, nil
 				}
 				return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 			}),
 		))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	awsClient := aws_sqs.NewFromConfig(cfg)
@@ -64,7 +63,7 @@ func NewSQSClient(ctx context.Context, config config.Configuration) SQSClient {
 
 	return &client{
 		client: sqs,
-	}
+	}, nil
 }
 
 func (c *client) SendMessage(ctx context.Context, queueUrl, body string) error {
