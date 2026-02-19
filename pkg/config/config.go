@@ -31,7 +31,6 @@ type Redis struct {
 type SQS struct {
 	OrdersQueue   string
 	PaymentsQueue string
-	Region        string
 }
 
 type AWS struct {
@@ -39,6 +38,7 @@ type AWS struct {
 	Secret   string
 	Session  string
 	Endpoint string
+	Region   string
 }
 
 func Load() (*Configuration, error) {
@@ -145,13 +145,13 @@ func Load() (*Configuration, error) {
 		SQS: SQS{
 			OrdersQueue:   sqsOrdersQueue,
 			PaymentsQueue: sqsPaymentsQueue,
-			Region:        awsRegion,
 		},
 		AWS: AWS{
 			Key:      awsAccessKey,
 			Secret:   awsSecretKey,
 			Session:  awsSession,
 			Endpoint: awsEndpoint,
+			Region:   awsRegion,
 		},
 	}, nil
 }
