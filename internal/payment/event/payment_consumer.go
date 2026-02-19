@@ -14,7 +14,7 @@ import (
 )
 
 type PaymenytConsumer interface {
-	StartWorker(ctx context.Context)
+	StartConsumer(ctx context.Context)
 	GetOrdersMessages(ctx context.Context) error
 }
 
@@ -34,7 +34,7 @@ type PaymentChannel struct {
 	ErrorMessage error
 }
 
-func (p *payment) StartWorker(ctx context.Context) {
+func (p *payment) StartConsumer(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -77,7 +77,7 @@ func orderPaymentProccess(ctx context.Context, orderMessage payment_event_reposi
 	}
 
 	paymentEvent := sqs_types.EventPaymentMessage{
-		EventId:     fmt.Sprintf("event:payment:{%v}", eventID.String()),
+		EventId:     fmt.Sprintf("event:payment:{%s}", eventID.String()),
 		OrderID:     orderMessage.EventOrderCreatedMessage.Data.OrderID,
 		EventType:   "payment_completed",
 		OccuredTime: time.Now(),

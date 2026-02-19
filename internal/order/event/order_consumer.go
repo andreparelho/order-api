@@ -11,7 +11,7 @@ import (
 )
 
 type OrderConsumer interface {
-	StartWorker(ctx context.Context)
+	StartConsumer(ctx context.Context)
 	GetPaymentsMessages(ctx context.Context) error
 }
 
@@ -33,7 +33,7 @@ type OrderChannel struct {
 	ErrorMessage error
 }
 
-func (o *order) StartWorker(ctx context.Context) {
+func (o *order) StartConsumer(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
