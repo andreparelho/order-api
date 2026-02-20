@@ -6,13 +6,14 @@ import (
 )
 
 type Configuration struct {
-	AppName string
-	Port    string
-	Env     string
-	RDS     RDS
-	Redis   Redis
-	SQS     SQS
-	AWS     AWS
+	AppName  string
+	Port     string
+	Env      string
+	RDS      RDS
+	Redis    Redis
+	SQS      SQS
+	DynamoDB DynamoDB
+	AWS      AWS
 }
 
 type RDS struct {
@@ -31,6 +32,10 @@ type Redis struct {
 type SQS struct {
 	OrdersQueue   string
 	PaymentsQueue string
+}
+
+type DynamoDB struct {
+	TableName string
 }
 
 type AWS struct {
@@ -103,6 +108,11 @@ func Load() (*Configuration, error) {
 		return nil, err
 	}
 
+	dynamoTableName, err := getEnv("DYNAMO_TABLE_NAME")
+	if err != nil {
+		return nil, err
+	}
+
 	awsRegion, err := getEnv("AWS_REGION")
 	if err != nil {
 		return nil, err
@@ -127,6 +137,7 @@ func Load() (*Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Configuration{
 		AppName: appName,
 		Port:    port,
@@ -145,6 +156,9 @@ func Load() (*Configuration, error) {
 		SQS: SQS{
 			OrdersQueue:   sqsOrdersQueue,
 			PaymentsQueue: sqsPaymentsQueue,
+		},
+		DynamoDB: DynamoDB{
+			TableName: dynamoTableName,
 		},
 		AWS: AWS{
 			Key:      awsAccessKey,
