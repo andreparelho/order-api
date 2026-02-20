@@ -11,8 +11,9 @@ import (
 	order_consumer "github.com/andreparelho/order-api/internal/order/event"
 	order_repository "github.com/andreparelho/order-api/internal/order/repository"
 	payment_consumer "github.com/andreparelho/order-api/internal/payment/event"
-	payment_event_repository "github.com/andreparelho/order-api/internal/payment/repository"
+	payment_repository "github.com/andreparelho/order-api/internal/payment/repository"
 	"github.com/andreparelho/order-api/pkg/config"
+	"github.com/andreparelho/order-api/pkg/dynamo"
 	"github.com/andreparelho/order-api/pkg/rds"
 	"github.com/andreparelho/order-api/pkg/redis"
 	"github.com/andreparelho/order-api/pkg/sqs"
@@ -52,22 +53,27 @@ func main() {
 		log.Fatalf("erro sqs: %v", err)
 	}
 
+	dynamoClient, err := dynamo.NewDynamoClient(ctx, *cfg)
+	if err != nil {
+		log.Fatalf("erro dynamo: %v", err)
+	}
+
 	orderEventRepository := order_repository.NewOrderEventRepository(sqsClient)
 	orderRepository := order_repository.NewOrderRepository(dbConn, redisClient)
-
-	paymentEventRepository := payment_event_repository.NewPaymentEventRepository(sqsClient)
+	paymentEventRepository := payment_repository.NewPaymentEventRepository(sqsClient)
+	paymentRepository := payment_repository.NewPaymentRepository(dynamoClient, cfg.DynamoDB.TableName)
 
 	orderConsumer := order_consumer.NewOrderConsumer(*cfg, orderEventRepository, orderRepository)
-	paymentConsumer := payment_consumer.NewPaymentConsumer(*cfg, paymentEventRepository)
+	paymentConsumer := payment_consumer.NewPaymentConsumer(*cfg, paymentEventRepository, paymentRepository)
 
 	go orderConsumer.StartConsumer(ctx)
 	go paymentConsumer.StartConsumer(ctx)
 
-	fmt.Println("[INFO]: workers iniciados com sucesso")
+	fmt.Print("\n[INFO]: workers iniciados com sucesso")
 
 	<-sig
-	fmt.Println("[INFO]: shutdown signal recebido")
+	fmt.Print("\n[INFO]: shutdown signal recebido")
 
 	cancel()
-	fmt.Println("[INFO]: worker encerrado com sucesso")
+	fmt.Print("\n[INFO]: worker encerrado com sucesso")
 }
