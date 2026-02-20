@@ -89,8 +89,7 @@ func (p *payment) GetOrdersMessages(ctx context.Context) error {
 func orderPaymentProccess(ctx context.Context, orderMessage payment_repository.EventOrder, orderQueue, paymentQueue string, eventRepository payment_repository.PaymentEventRepostory, paymentStatus string) error {
 	receiptHandle := orderMessage.ReceiptHandle
 
-	err := eventRepository.FinishPaymentProccess(ctx, orderQueue, receiptHandle)
-	if err != nil {
+	if err := eventRepository.FinishPaymentProccess(ctx, orderQueue, receiptHandle); err != nil {
 		return err
 	}
 	fmt.Printf("\n[INFO]: deletando mensagem da fila (%s). Mensagem: %v. Source: payment_service", orderQueue, orderMessage)
@@ -110,8 +109,7 @@ func orderPaymentProccess(ctx context.Context, orderMessage payment_repository.E
 		CacheKey:    orderMessage.EventOrderCreatedMessage.Data.CacheKey,
 	}
 
-	err = eventRepository.SendPaymentEvent(ctx, paymentQueue, paymentEvent)
-	if err != nil {
+	if err := eventRepository.SendPaymentEvent(ctx, paymentQueue, paymentEvent); err != nil {
 		return err
 	}
 

@@ -58,8 +58,7 @@ func (p *payment) GetOrderPayment(ctx context.Context, queueURL string) (EventOr
 }
 
 func (p *payment) FinishPaymentProccess(ctx context.Context, queueURL string, receiptHandle *string) error {
-	err := p.sqs.DeleteMessage(ctx, queueURL, receiptHandle)
-	if err != nil {
+	if err := p.sqs.DeleteMessage(ctx, queueURL, receiptHandle); err != nil {
 		fmt.Printf("\n[ERROR]: erro eo remover mensagem da fila. Erro: %v", err)
 		return err
 	}
@@ -74,8 +73,7 @@ func (p *payment) SendPaymentEvent(ctx context.Context, queueURL string, event s
 		return errors_utils.ErrMarshalEvent
 	}
 
-	err = p.sqs.SendMessage(ctx, queueURL, string(paymentEventMarsh))
-	if err != nil {
+	if err := p.sqs.SendMessage(ctx, queueURL, string(paymentEventMarsh)); err != nil {
 		fmt.Printf("\n[ERROR]: erro ao enviar mensagem para fila. Erro: %v", err)
 		return errors_utils.ErrSendMessageQueue
 	}

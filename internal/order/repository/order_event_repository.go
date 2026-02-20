@@ -38,8 +38,7 @@ func (o *orderEvent) SendOrderEventMessage(ctx context.Context, queueURL string,
 		return errors_utils.ErrMarshalEvent
 	}
 
-	err = o.sqs.SendMessage(ctx, queueURL, string(orderEventMarsh))
-	if err != nil {
+	if err := o.sqs.SendMessage(ctx, queueURL, string(orderEventMarsh)); err != nil {
 		fmt.Printf("\n[ERROR]: erro ao enviar mensagem para fila. Erro: %v", err)
 		return errors_utils.ErrSendMessageQueue
 	}
@@ -74,8 +73,7 @@ func (o *orderEvent) GetPaymentOrderMessage(ctx context.Context, queueURL string
 }
 
 func (o *orderEvent) FinishPaymentOrderEventMessage(ctx context.Context, queueURL string, message *string) error {
-	err := o.sqs.DeleteMessage(ctx, queueURL, message)
-	if err != nil {
+	if err := o.sqs.DeleteMessage(ctx, queueURL, message); err != nil {
 		fmt.Printf("\n[ERROR]: erro ao realizar remocao do evento. Erro: %v", err)
 		return err
 	}

@@ -73,13 +73,11 @@ func finishOrderProccess(ctx context.Context, paymentMessage order_repository.Ev
 
 	time.Sleep(10 * time.Second)
 
-	err := orderRepository.UpdateOrder(ctx, order, paymentMessage.EventPaymentMessage.CacheKey)
-	if err != nil {
+	if err := orderRepository.UpdateOrder(ctx, order, paymentMessage.EventPaymentMessage.CacheKey); err != nil {
 		return err
 	}
 
-	err = eventRepository.FinishPaymentOrderEventMessage(ctx, paymentQueue, paymentMessage.ReceiptHandle)
-	if err != nil {
+	if err := eventRepository.FinishPaymentOrderEventMessage(ctx, paymentQueue, paymentMessage.ReceiptHandle); err != nil {
 		return err
 	}
 

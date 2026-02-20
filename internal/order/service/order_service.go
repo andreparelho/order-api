@@ -94,8 +94,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 		},
 	}
 
-	err = o.eventRepository.SendOrderEventMessage(ctx, o.cfg.SQS.OrdersQueue, orderEvent)
-	if err != nil {
+	if err := o.eventRepository.SendOrderEventMessage(ctx, o.cfg.SQS.OrdersQueue, orderEvent); err != nil {
 		fmt.Printf("\n[ERROR]: erro ao enviar mensagem para fila, erro: %v", err)
 		return errors_utils.ErrSendMessageQueue
 	}
