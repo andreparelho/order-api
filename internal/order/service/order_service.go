@@ -81,7 +81,7 @@ func (o *order) CreateOrderService(ctx context.Context, orderRequest CreateOrder
 	}
 
 	orderEvent := sqs_types.EventOrderCreatedMessage{
-		EventId:     fmt.Sprintf("event:order_created:{%s}", eventID.String()),
+		EventID:     fmt.Sprintf("event:order_created:{%s}", eventID.String()),
 		EventType:   "order_created",
 		Source:      "order_service",
 		OccuredTime: time.Now(),

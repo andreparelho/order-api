@@ -55,7 +55,6 @@ func (o *order) GetPaymentsMessages(ctx context.Context) error {
 	}
 
 	if !haveMessage {
-		fmt.Print("\n[INFO]: nenhuma mensagem na fila")
 		return nil
 	}
 
