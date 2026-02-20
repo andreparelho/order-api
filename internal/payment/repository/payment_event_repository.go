@@ -1,4 +1,4 @@
-package payment_event_repository
+package payment_repository
 
 import (
 	"context"
